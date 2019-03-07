@@ -1,0 +1,28 @@
+<h1>Callback Section</h1>
+
+<p>State: {{ state }}</p>
+<p>Authorization Code: {{ code }}</p>
+
+<p>Newly Generated Access Token: {{ token }}</p>
+
+<h2>Get Data</h2>
+<input type="text" [(ngModel)]="key" name="key-input">
+<button mat-raised-button color="primary" (click)="getData()">Search</button>
+
+<p>{{ data | json }}</p>
+
+<h2>Add Data</h2>
+<label>Key</label>
+<input type="text" [(ngModel)]="writeKey" name="write-key-input">
+<label>Value</label>
+<input type="text" [(ngModel)]="writeValue" name="write-value-input">
+<button mat-raised-button color="primary" (click)="addData()">Add</button>
+
+<p>{{ writeData | json }}</p>
+
+<h2>Delete Data</h2>
+<label>Key</label>
+<input type="text" [(ngModel)]="deleteKey" name="delete-key-input">
+<button mat-raised-button color="primary" (click)="deleteData()">Delete</button>
+
+<p>{{ deleteResponse | json }}</p>

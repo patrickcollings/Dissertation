@@ -1,0 +1,12 @@
+<div class="header">
+  <h3>Authorized Apps</h3>
+</div>
+
+<div class="row" *ngFor="let app of testApp">
+  <h2>{{ app.client }}</h2>
+  <div class="scope-list">
+    <p *ngFor="let scope of app.scope">{{ scope }}</p>
+  </div>
+  <button mat-raised-button (click)="removeApp(app.client)">Reject</button>  
+</div>
+

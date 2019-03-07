@@ -1,0 +1,9 @@
+<h1>Review Authorization Request:</h1>
+<p>Client Id: {{ clientId }}</p>
+<p>Redirect URI: {{ redirect }}</p>
+<p>Response Type: {{ responseType }}</p>
+<p>Scope: {{ scope }}</p>
+<p>State: {{ state }}</p>
+
+<button mat-raised-button (click)="accept()">Accept</button>
+<button mat-raised-button (click)="reject()">Reject</button>

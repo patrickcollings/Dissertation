@@ -1,0 +1,28 @@
+$width: 90%;
+$card-width: 45%;
+$height: 50%;
+$margin: 5%; 
+
+.cards {
+    width: $width;
+    height: $height;
+    display: flex;
+    justify-content: space-evenly;
+    padding: 0 $margin;
+}
+
+.card {
+    width: $card-width;
+    height: 80vh;
+    // border: 1px solid grey;
+    border-radius: 0.3em;
+}
+
+.nav-bar {
+    display: flex;
+    align-items: center;
+}
+
+.nav-bar h1 {
+    flex-grow: 1;
+}

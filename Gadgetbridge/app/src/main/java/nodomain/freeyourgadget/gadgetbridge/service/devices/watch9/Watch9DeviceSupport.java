@@ -110,6 +110,9 @@ public class Watch9DeviceSupport extends AbstractBTLEDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     protected TransactionBuilder initializeDevice(TransactionBuilder builder) {
         try {
             boolean auth = needsAuth;

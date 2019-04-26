@@ -143,6 +143,9 @@ public class ZeTimeDeviceSupport extends AbstractBTLEDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     public void onDeleteCalendarEvent(byte type, long id) {
 
     }

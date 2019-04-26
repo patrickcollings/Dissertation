@@ -1,55 +1,35 @@
 'use strict';
 
-var express = require('express'),
+const express = require('express'),
 	bodyParser = require('body-parser'),
 	mongoose = require('mongoose'),
 	OAuth2Server = require('oauth2-server'),
-	Request = OAuth2Server.Request,
-	Response = OAuth2Server.Response,
 	cors = require('cors'),
 	Q = require('q');
 
 const jwt = require('jsonwebtoken');
-const expressJwt = require('express-jwt');
-const oauth2orize = require('oauth2orize');
 const utils = require('./utils/');
-
-var app = express();
 const model = require('./model.js');
+
+const app = express();
 app.use(cors({ origin: 'http://localhost:4444' }));
-
-const server = oauth2orize.createServer();
-
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(bodyParser.json());
 
-var mongoUri = 'mongodb://localhost/oauth';
+const mongoUri = 'mongodb://localhost/oauth';
 
-/* ---------------AUTHENTICATION WITH JWT------------------------- */
+const appSecret = 'secretCode';
 
+/**
+ * Allow cors access for all requests
+ */
 app.all('/', function (req, res, next) {
 	res.header("Access-Control-Allow-Origin", "*");
 	res.header("Access-Control-Allow-Headers", "X-Requested-With");
 	next();
 });
 
-app.post('/api/auth', function (req, res) {
-	res.header("Access-Control-Allow-Origin", "*");
-	res.header("Access-Control-Allow-Headers", "X-Requested-With");
-	const body = req.body;
-
-	model.getUser(body.username, body.password).exec().then(user => {
-		if (!user) return res.sendStatus(401);
-
-		var token = jwt.sign({ userID: user.id }, 'todo-app-super-shared-secret', { expiresIn: '2hr' });
-		res.send({ token });
-	});
-
-});
-
-/** ---------------END OF AUTHENTICATION--------------------------- */
-
+// Connect to auth service database
 mongoose.connect(mongoUri, {
 	useCreateIndex: true,
 	useNewUrlParser: true
@@ -59,38 +39,65 @@ mongoose.connect(mongoUri, {
 		return console.error('Error connecting to "%s":', mongoUri, err);
 	}
 	console.log('Connected successfully to "%s"', mongoUri);
-	// model.dump();
 });
 
+/* ---------------AUTHENTICATION WITH JWT------------------------- */
 
-app.oauth = new OAuth2Server({
-	model: require('./model.js'),
-	accessTokenLifetime: 60 * 60,
-	allowBearerTokensInQueryString: true
+/**
+ * Authenticate a user
+ * If user details are correct returns a new JWT token.
+ */
+app.post('/api/auth', function (req, res) {
+	res.header("Access-Control-Allow-Origin", "*");
+	res.header("Access-Control-Allow-Headers", "X-Requested-With");
+	const body = req.body;
+	console.log(body);
+	model.getUser(body.username, body.password).exec().then(user => {
+		console.log(user);
+		if (!user) return res.sendStatus(401);
+
+		var token = jwt.sign({ userID: user.id }, appSecret, { expiresIn: '2hr' });
+		res.send({ token });
+	});
+
 });
 
+/**
+ * Verifies a JWT token
+ */
+app.post('/session', (req, res) => {
+	const token = req.body.token;
+	try {
+		jwt.verify(token, appSecret);
+		res.status(200).json({ success: true, err_message: '', err: '' }).end();
+	} catch (err) {
+		res.status(400).json({ success: false, err_message: 'JWT token is invalid', err: err }).end();
+	}
+})
+
+/** ----------------------------------------------------------------- */
+
+/** ---------------- Authorisation with OAuth ------------------------- */
+
+
+/**
+ * Returns an auth code 
+ */
 app.post('/code', (req, res) => {
 
-	console.log('Beginning Code Generation');
-
 	const token = req.body.token;
-	const redirect = req.body.redirect;
 	const clientId = req.body.clientId;
 	const scope = req.body.scope;
 
-	// Authorise Token
+	// Create Auth Token
 	try {
-		// console.log("Trying");
-		const jwwt = jwt.verify(token, 'todo-app-super-shared-secret');
-		// console.log("Trying");
+		const verifiedJWT = jwt.verify(token, appSecret);
+		// Generate random 16 digit string for the auth code
 		const code = utils.getUid(16);
-		// TODO Check user on database
-		// TODO check redirect on database
-		// TODO check clientId on database
 		// Save auth code
-		model.saveAuthCode(code, clientId, jwwt.userID, scope).then(function (code, err) {
+		model.saveAuthCode(code, clientId, verifiedJWT.userID, scope).then(function (code, err) {
 			if (code) { 
-				console.log('Finished code gen');
+				// Once saved return auth code
 				res.status(200).json(code.authCode).end();
 			}
 			res.status(401).json({ err: err }).end();
@@ -101,6 +108,9 @@ app.post('/code', (req, res) => {
 	}
 });
 
+/**
+ * Provided a valid auth code returns a new access token.
+ */
 app.post('/token', async (req, res) => {
 	const code = req.body.code;
 	const redirect_uri = req.body.redirect_uri;
@@ -109,13 +119,12 @@ app.post('/token', async (req, res) => {
 	const user_id = req.body.user_id;
 	const scope = req.body.scope;
 
-	const access_token = utils.getUid(16);
+	
 
 	try {
 
-		console.log('Beginning token creation');
-
-		let authCode = await model.getAuthCode(code).then((authCode, err) => {
+		// First check to see if there is a matching auth code in the database
+		await model.getAuthCode(code).then((authCode, err) => {
 			if (err) { throw err }
 			if (!authCode) {
 				throw new Error('Auth Code Not Found');
@@ -125,6 +134,10 @@ app.post('/token', async (req, res) => {
 			throw error;
 		});
 
+		// Generate a random 16 digit string for the access token
+		const access_token = utils.getUid(16);
+
+		// If an auth code has been found then save the new access token
 		let token = await model.saveToken(code, access_token, client_id, user_id, scope).then((result, err) => {
 			if (err) {
 				throw new Error('Error Saving Access Token');
@@ -134,7 +147,8 @@ app.post('/token', async (req, res) => {
 			throw error;
 		});
 
-		let deletedCode = await model.removeAuthCode(code).then( (code, err) => {
+		// Remove old auth code. This stops a client from authorising multiple times with the same code.
+		await model.removeAuthCode(code).then( (code, err) => {
 			if (err) { throw err}
 			if (!code) { throw new Error('Could Not Find Auth Code'); }
 			return code;
@@ -142,8 +156,7 @@ app.post('/token', async (req, res) => {
 			throw error;
 		});
 
-		console.log('Finished Creating Token!');
-
+		// Return access token
 		res.status(200).json({access_token: token}).end();
 
 	} catch (err) {
@@ -152,6 +165,11 @@ app.post('/token', async (req, res) => {
 	}
 });
 
+/**
+ * Verify an access token.
+ * Checks to see if a valid token is on the database with matching credentials.
+ * Also checks to see if the requested scope has permission.
+ */
 app.post('/verify-token', (req, res) => {
 	const token = req.body.token;
 	const client_id = req.body.client_id;
@@ -162,32 +180,29 @@ app.post('/verify-token', (req, res) => {
 	model.verifyToken(client_id, client_secret, user_id, token).exec().then(result => {
 		if (result !== null) {
 			console.log(result);
+			// Check if scope request valid
 			if (result.scope.includes(scope_request)) {
 				res.status(200).json({ success: true }).end();
 			} else {
 				res.status(400).json({ success: false, msg: "You do not have permission to perform that action." }).end();
 			}
 		};
-		res.status(400).json({ success: false, msg: 'Token not found' }).end();
+		res.status(400).json({ success: false, msg: 'You do not have permission to perform that action.' }).end();
 	})
 });
 
-app.post('/session', (req, res) => {
-	const token = req.body.token;
-	try {
-		jwt.verify(token, 'todo-app-super-shared-secret');
-		res.status(200).json({ success: true, err_message: '', err: '' }).end();
-	} catch (err) {
-		res.status(400).json({ success: false, err_message: 'JWT token has expired', err: err }).end();
-	}
-})
-
+/**
+ * Remove authorisation from a client. This will remove their access token, forcing them to re-authorise
+ * to gain access again.
+ */
 app.delete('/authorized/:client', async (req, res) => {
 	const client = req.params.client;
 	const token = req.header('Authorization');
 
 	try {
-		jwt.verify(token, 'todo-app-super-shared-secret');
+		// Verify the user's JWT
+		jwt.verify(token, appSecret);
+		// Remove clients token
 		await model.removeToken(client).then( (token, err) => {
 			if (err) { throw err; }
 			if (token.n === 0) { throw new Error('Could Not Find Access Token'); }
@@ -201,6 +216,31 @@ app.delete('/authorized/:client', async (req, res) => {
 
 })
 
+app.get('/authfitness', (req, res) => {
+
+	const access_token = 'fitnessapp';
+	const code = '';
+	const client_id = 'fitnessApp';
+	const user_id= '';
+	const scope = 'health-write';
+	
+	
+	model.saveToken(code, access_token, client_id, user_id, scope).then((result, err) => {
+		if (err) {
+			throw new Error();
+		} else {
+			console.log("Finished saving token");
+			res.status(200).end();
+		}
+	}).catch(error => {
+		res.status(500).end();
+	});
+
+});
+
+/**
+ * Returns a list of all authorised clients. This is to be displayed on the pod.
+ */
 app.get('/authorized', (req, res) => {
 	model.getAuthorizedApps().exec().then(result => {
 		res.status(200).json(result).end();

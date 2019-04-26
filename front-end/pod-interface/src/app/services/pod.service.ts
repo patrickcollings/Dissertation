@@ -10,7 +10,13 @@ export class PodService {
     private http: HttpClient
   ) { }
 
+  // Get list of authorised apps from auth service.
   getAuthorizedApps() {
     return this.http.get('http://localhost:3000/authorized');
+  }
+
+  // Get all health data from pod database.
+  getData() {
+    return this.http.get('http://localhost:3002/health');
   }
 }

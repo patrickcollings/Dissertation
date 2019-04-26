@@ -30,8 +30,10 @@ export class LoginComponent implements OnInit {
 
   submit() {
     console.log('Logging in- ' + this.username + ' : ' + this.password);
+    // Attempt to login with user credentials. If error display message.
     this.authorizeService.login(this.username, this.password).subscribe(
       result => {
+        // If correct then navigate to the either the home page for the pod or the authorisation page for a request.
         this.router.navigateByUrl(this.returnUrl);
       },
       err => {

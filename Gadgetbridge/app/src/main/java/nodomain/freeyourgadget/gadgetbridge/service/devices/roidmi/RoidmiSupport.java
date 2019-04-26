@@ -90,6 +90,9 @@ public class RoidmiSupport extends AbstractSerialDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     protected GBDeviceProtocol createDeviceProtocol() {
         if (getDevice().getType() == DeviceType.ROIDMI) {
             return new Roidmi1Protocol(getDevice());

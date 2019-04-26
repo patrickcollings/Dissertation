@@ -50,6 +50,9 @@ public class LiveviewSupport extends AbstractSerialDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     public boolean useAutoConnect() {
         return false;
     }

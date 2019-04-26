@@ -78,6 +78,10 @@ public class ID115Support extends AbstractBTLEDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+
+    @Override
     public boolean useAutoConnect() {
         return true;
     }

@@ -10,7 +10,7 @@ var express = require('express'),
 const model = require('./model');
 
 var app = express();
-app.use(cors({ origin: 'http://localhost:4200' }));
+app.use(cors({ origin: '*' }));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -18,6 +18,7 @@ app.use(bodyParser.json());
 
 var mongoUri = 'mongodb://localhost/pod';
 
+// Connect to the pod database
 mongoose.connect(mongoUri, {
     useCreateIndex: true,
     useNewUrlParser: true
@@ -29,8 +30,16 @@ mongoose.connect(mongoUri, {
     console.log('Connected successfully to "%s"', mongoUri);
 });
 
+/**
+ * Validates an access token through the Auth Service.
+ * This validation will also ensure that the requested scope matches the access tokens permissions.
+ * 
+ * @param {*} token 
+ * @param {*} scope_request 
+ * @param {*} callback 
+ */
 function validateToken(token, scope_request, callback) {
-    // Check token valid
+    // Setup options for http request
     var options = {
         method: 'POST',
         uri: 'http://localhost:3000/verify-token',
@@ -58,18 +67,35 @@ function validateToken(token, scope_request, callback) {
         });
 }
 
+/**
+ * Returns a list of all health data. No auth checks are used for this end-point as it will be 
+ * used for the demonstration temporarily.
+ */
+app.get('/health', async (req, res) => {
+    model.getAllData('health').exec().then(result => {
+        if (res) { res.status(200).send(result).end() }
+        res.status(404).json({msg: 'Could not find collection'});
+    })
+});
+
+/**
+ * Returns a value from a specific collection.
+ * Requires a valid token to be passed with the request.
+ */
 app.get('/:collection/:key', async (req, res) => {
     console.log(req.body.key);
     console.log(req.params.scope);
     const key = req.params.key;
     const token = req.header('Authorization');
     const collection = req.params.collection;
+    // Create the scope value that the request requires. This will be checked against the permissions of the access token by the auth service.
     const scope = collection + '-read';
     console.log(token);
 
     await validateToken(token, scope, async (err, result) => {
         if (!err) {
             console.log(result);
+            // Get key-value pair and return
             model.getPair(key, collection).exec().then(pair => {
                 if (pair) { res.status(200).send(pair).end() }
                 res.status(404).json({ msg: 'Resource does not exist' }).end();
@@ -80,6 +106,10 @@ app.get('/:collection/:key', async (req, res) => {
     })
 });
 
+/**
+ * Add a list of values to a specific collection.
+ * Requires a valid token to be passed with the request.
+ */
 app.post('/:collection', async (req, res) => {
     console.log(req.body);
     console.log(req.header('Authorization'));
@@ -89,11 +119,12 @@ app.post('/:collection', async (req, res) => {
     const token = req.header('Authorization');
     // If valid then check scopes against endpoint requested - check using authentication server whether users scope matches
     const collection = req.params.collection;
-    // Once user validated and scopes checked then save the value(s) to the pod using the scope as the collection to save to
+    // Create the scope value that the request requires. This will be checked against the permissions of the access token by the auth service.
     const scope = collection + '-write';
     await validateToken(token, scope, async (err, result) => {
         if (!err) {
             console.log(result);
+            // Once user validated and scopes checked then save the value(s) to the pod using the scope as the collection to save to
             await model.savePair(pair, collection);
             res.status(200).json({ success: true, pair}).end();
         } else {
@@ -102,6 +133,10 @@ app.post('/:collection', async (req, res) => {
     });
 });
 
+/**
+ * Remove a value from a collection by key.
+ * Requires a valid access token to be passed with the request.
+ */
 app.delete('/:collection/:key', async (req, res) => {
     // Get value pair
     // Check that users token is valid - should return available scopes for user
@@ -109,17 +144,21 @@ app.delete('/:collection/:key', async (req, res) => {
     // If valid then check scopes against endpoint requested - check using authentication server whether users scope matches
     const collection = req.params.collection;
     const key = req.params.key;
+    // Create the scope value that the request requires. This will be checked against the permissions of the access token by the auth service.
     const scope = collection + '-delete';
 
     await validateToken(token, scope, async (err, result) => {
         if (!err) {
             console.log(result);
+            // Delete key-value pair.
             model.deletePair(key, collection).exec().then(result => {
                 if (result.ok === 1) {
+                    // If no documents deleted then resource not found
                     if (result.deletedCount === 0) {
                         res.status(404).send({ msg: 'Resource does not exist', result: result }).end();
                     }
-                    res.status(200).send({ msg: 'Success: ' + result.deletedCount + ' docs deleted', result: result }).end();
+                    // Return result
+                    res.status(200).send({ msg: 'Successfully deleted', result: result }).end();
                 } else {
                     res.status(500).json({ result, msg: 'Could not delete' }).end();
                 }
@@ -128,8 +167,6 @@ app.delete('/:collection/:key', async (req, res) => {
             res.status(403).json(err).end();
         }
     });
-    // Once user validated and scopes checked then save the value(s) to the pod using the scope as the collection to save to
-    
 });
 
 app.listen(3002);

@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { AuthorizeService } from '../../services/authorize.service';
 
-import { take } from 'rxjs/operators';
 import { DataService } from '../../services/data.service';
 
 @Component({
@@ -33,15 +32,16 @@ export class CallbackComponent implements OnInit {
     private dataService: DataService
   ) { }
 
-  ngOnInit() {
 
+  ngOnInit() {
+    // Get parameters from URL
     this.activatedRoute.queryParams.subscribe(params => {
-      console.log(params); // Print the parameter to the console.
+      // Check if states match
       if (this.authService.checkState(params.state)) {
-        this.state = 'States are correct!: ' + params.state;
+        this.state = 'States match.';
         this.code = params.code;
         this.scope = params.scope;
-        // Get access token from authentication server
+        // Get access token from authentication server using auth code
         this.authService.getAccessToken(this.code, this.scope).subscribe( res => {
           this.token = res.access_token;
         });
@@ -49,34 +49,48 @@ export class CallbackComponent implements OnInit {
     });
   }
 
+  // Search for a value in the pod by key.
   getData() {
     const search = this.key;
     this.dataService.getHealthData(this.token, search).subscribe( res => {
-      console.log(res);
-      this.data = res;
+      // If key found then display value
+      if (res[`${search}`]) {
+        this.data = res[`${search}`];
+      } else {
+        this.data = 'Not found';
+      }
     },
     error => {
-      this.data = error.error;
+      this.data = error.error.msg;
     });
   }
 
+  // Add or update data in the pod.
   addData() {
     this.dataService.addHealthData(this.token, this.writeKey, this.writeValue).subscribe( res => {
-      this.writeData = res;
+      if (res[`success`]) {
+        this.writeData = 'Value successfully updated';
+      } else {
+        this.writeData = 'Error';
+      }
     },
     error => {
-      this.writeData = error.error;
+      this.writeData = error.error.err.msg;
     });
   }
 
+  // Delete a key-value pair in the pod.
   deleteData() {
     this.dataService.deleteHealthData(this.token, this.deleteKey).subscribe(
     (res) => {
-      this.deleteResponse = res;
+      this.deleteResponse = res[`msg`];
     },
     error => {
-      console.log(error);
-      this.deleteResponse = error.error;
+      this.deleteResponse = error.error.msg;
     });
+  }
+
+  authorise() {
+    window.open('http://localhost:4200', '_self');
   }
 }

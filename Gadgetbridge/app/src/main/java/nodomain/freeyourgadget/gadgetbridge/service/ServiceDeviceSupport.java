@@ -68,6 +68,9 @@ public class ServiceDeviceSupport implements DeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     public boolean isConnected() {
         return delegate.isConnected();
     }

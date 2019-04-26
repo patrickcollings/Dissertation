@@ -91,6 +91,9 @@ public class XWatchSupport extends AbstractBTLEDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     protected TransactionBuilder initializeDevice(TransactionBuilder builder) {
         builder.add(new SetDeviceStateAction(getDevice(), State.INITIALIZING, getContext()));
 

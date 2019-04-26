@@ -78,6 +78,9 @@ public class No1F1Support extends AbstractBTLEDeviceSupport {
     }
 
     @Override
+    public void syncData() {}
+
+    @Override
     protected TransactionBuilder initializeDevice(TransactionBuilder builder) {
         LOG.info("Initializing");
 

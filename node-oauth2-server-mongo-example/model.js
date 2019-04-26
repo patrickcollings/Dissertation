@@ -12,7 +12,6 @@ var clientModel = require('./mongo/model/client'),
 /**
  * Add example client and user to the database (for debug).
  */
-
 var loadExampleData = function() {
 
 	var client1 = new clientModel({
@@ -110,10 +109,7 @@ var dump = function() {
 	});
 };
 
-/*
- * Methods used by all grant types.
- */
-
+// Find an access token
 var getAccessToken = function(token) {
 
 	return tokenModel.findOne({
@@ -121,16 +117,19 @@ var getAccessToken = function(token) {
 	});
 };
 
+// Find an auth code
 var getAuthCode = function(code) {
 	return codeModel.findOne({
 		authCode: code
 	})
 }
 
+// Remove auth code
 var removeAuthCode = function(code) {
     return codeModel.deleteOne({ authCode: code });
 }
 
+// Save an auth code along with identifying credentials
 var saveAuthCode = function(code, client, user, scope) {
 
 	var codeInstance = new codeModel();
@@ -143,14 +142,15 @@ var saveAuthCode = function(code, client, user, scope) {
 	return codeInstance.save();
 }
 
+// Find client details
 var getClient = function(clientId, clientSecret) {
-
 	return clientModel.findOne({
 		clientId: clientId,
 		clientSecret: clientSecret
 	});
 };
 
+// Save access token
 var saveToken = function(code, token, client, user, scope) {
 
 	var tokenInstance = {};
@@ -162,14 +162,12 @@ var saveToken = function(code, token, client, user, scope) {
 	return tokenModel.findOneAndUpdate({ client }, tokenInstance, { upsert: true });
 };
 
+// Remove access token by client
 var removeToken = function(client) {
     return tokenModel.deleteOne({ client });
 }
 
-/*
- * Method used only by password grant type.
- */
-
+// Find a user by username and password
 var getUser = function(username, password) {
 
 	return userModel.findOne({
@@ -178,19 +176,7 @@ var getUser = function(username, password) {
 	});
 };
 
-/*
- * Method used only by client_credentials grant type.
- */
-
-var getUserFromClient = function(client) {
-
-	return clientModel.findOne({
-		clientId: client.clientId,
-		clientSecret: client.clientSecret,
-		grants: 'client_credentials'
-	});
-};
-
+// Find an access token and verify it.
 var verifyToken = function(client, secret, user, token) {
 	return tokenModel.findOne({
 		// client: client,
@@ -199,9 +185,13 @@ var verifyToken = function(client, secret, user, token) {
 	})
 }
 
+// Return all authorised apps
 var getAuthorizedApps = function() {
 	return tokenModel.find({});
 }
+
+// Run this file in the command line to fill the database with initial data.
+loadExampleData();
 
 /**
  * Export model definition object.
@@ -214,7 +204,6 @@ module.exports = {
 	saveAuthCode: saveAuthCode,
 	saveToken: saveToken,
 	getUser: getUser,
-	getUserFromClient: getUserFromClient,
 	loadExampleData: loadExampleData,
 	dump: dump,
 	verifyToken: verifyToken,

@@ -69,6 +69,8 @@ public interface EventHandler {
 
     void onFetchRecordedData(int dataTypes);
 
+    void syncData();
+
     void onReboot();
 
     void onHeartRateTest();

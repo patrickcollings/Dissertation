@@ -56,6 +56,12 @@ import nodomain.freeyourgadget.gadgetbridge.model.ActivitySummary;
 import nodomain.freeyourgadget.gadgetbridge.model.RecordedDataTypes;
 import nodomain.freeyourgadget.gadgetbridge.util.AndroidUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
+import okhttp3.Headers;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class ActivitySummariesActivity extends AbstractListActivity<BaseActivitySummary> {
 
@@ -107,6 +113,7 @@ public class ActivitySummariesActivity extends AbstractListActivity<BaseActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             mGBDevice = extras.getParcelable(GBDevice.EXTRA_DEVICE);

@@ -20,27 +20,33 @@ export class AuthorizeComponent implements OnInit {
     private authService: AuthorizeService
   ) {
     this.activatedRoute.queryParams.subscribe(params => {
-      console.log(params); // Print the parameter to the console.
+      // Get list of URL parameters from the request. This will be used to generate an auth code.
       this.clientId = params.client_id;
       this.redirect = params.redirect_uri;
       this.responseType = params.response_type;
       this.scope = params.scope;
       this.state = params.state;
+
+      this.redirect.trim();
     });
   }
 
   ngOnInit() {
   }
 
+  // If user accepts the request then generate new auth code from the auth service.
   accept() {
     this.authService.getCode(this.redirect, this.clientId, this.scope).subscribe(res => {
-      console.log(this.redirect);
-      const uri = encodeURI(this.redirect + `?code=${res}&state=${this.state}&scope=${this.scope}`);
+      // Generate new URI to the redirect location and include the new auth code.
+      const url = this.redirect + `?code=${res}&state=${this.state}&scope=${this.scope}`;
+      const uri = encodeURI(url);
+      // Open new window back to the third-party.
       window.open(uri, '_self');
     });
   }
 
+  // If user rejects the request then they are taken back to the third-party with no auth code.
   reject() {
-    console.log('Rejecting Request');
+    window.open('http://localhost:4200', '_self');
   }
 }

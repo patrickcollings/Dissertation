@@ -224,6 +224,9 @@ public class HuamiSupport extends AbstractBTLEDeviceSupport {
         return builder;
     }
 
+    @Override
+    public void syncData() { }
+
     /**
      * Returns the given date/time (calendar) as a byte sequence, suitable for sending to the
      * Mi Band 2 (or derivative). The band appears to not handle DST offsets, so we simply add this

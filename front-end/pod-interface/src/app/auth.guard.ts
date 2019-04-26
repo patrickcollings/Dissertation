@@ -14,10 +14,12 @@ export class AuthGuard implements CanActivate {
   ) { }
 
   canActivate(next: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    // Check if user is authenticated
     if (this.authService.isAuthenticated()) {
-      console.log('Is Authenticated');
       return true;
     } else {
+      // If not authenticated redirect user to login page.
+      // If directed from the request page then as soon as user is logged in take them back to the same request.
       this.router.navigate(['login'], { queryParams: { returnUrl: state.url } });
       return false;
     }

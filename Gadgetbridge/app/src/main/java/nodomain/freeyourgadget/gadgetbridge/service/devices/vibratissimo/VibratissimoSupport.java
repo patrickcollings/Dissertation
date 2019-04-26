@@ -104,6 +104,9 @@ public class VibratissimoSupport extends AbstractBTLEDeviceSupport {
         builder.add(new SetDeviceStateAction(getDevice(), GBDevice.State.INITIALIZED, getContext()));
     }
 
+    @Override
+    public void syncData() {}
+
 
     @Override
     public boolean useAutoConnect() {

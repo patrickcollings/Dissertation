@@ -26,10 +26,15 @@
     height: 3em;
     display: flex;
     align-items: center;
+    justify-content: space-between;
 }
 
 .header h3 {
     margin: 0;
     color: white;
     margin-left: 1em;
+}
+
+.header button {
+    margin-right: 1em;
 }

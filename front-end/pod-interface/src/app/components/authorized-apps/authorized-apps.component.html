@@ -1,5 +1,6 @@
 <div class="header">
   <h3>Authorized Apps</h3>
+  <button mat-raised-button (click)="addFitnessApp()" color="secondary">Authorise Fitness App</button>
 </div>
 
 <div class="row" *ngFor="let app of testApp">
@@ -9,4 +10,6 @@
   </div>
   <button mat-raised-button (click)="removeApp(app.client)">Reject</button>  
 </div>
+
+
 

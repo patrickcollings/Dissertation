@@ -1,9 +1,18 @@
-<h1>
-  Request Authorization
-</h1>
+<div class="container">
 
-<input type="checkbox" [(ngModel)]="readPermission">Read<br>
-<input type="checkbox" [(ngModel)]="writePermission">Write<br>
-<input type="checkbox" [(ngModel)]="deletePermission">Delete<br>
+  <h1>
+    Request Authorization
+  </h1>
 
-<button (click)="authorize()">Authorize</button>
+  <p>In order to use this third-party application you must first gain authorisation from your pod.</p>
+
+  <div class="options">
+    <mat-checkbox [(ngModel)]="readPermission">Read</mat-checkbox>
+    <mat-checkbox [(ngModel)]="writePermission">Write</mat-checkbox>
+    <mat-checkbox [(ngModel)]="deletePermission">Delete</mat-checkbox>
+  </div>
+
+
+  <button mat-raised-button color="primary" (click)="authorize()">Authorise</button>
+
+</div>

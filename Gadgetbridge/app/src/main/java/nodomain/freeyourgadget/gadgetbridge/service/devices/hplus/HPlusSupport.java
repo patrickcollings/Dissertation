@@ -80,6 +80,11 @@ public class HPlusSupport extends AbstractBTLEDeviceSupport {
 
         addSupportedService(HPlusConstants.UUID_SERVICE_HP);
     }
+    @Override
+    public void syncData() {
+
+    }
+
 
     @Override
     public void dispose() {

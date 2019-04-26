@@ -183,6 +183,9 @@ public class TeclastH30Support extends AbstractBTLEDeviceSupport {
         ));
     }
 
+    @Override
+    public void syncData() { }
+
     private void showNotification(byte icon, String title, String message) {
         try {
             TransactionBuilder builder = performInitialized("ShowNotification");

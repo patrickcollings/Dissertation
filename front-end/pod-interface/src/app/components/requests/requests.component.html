@@ -1,11 +1,12 @@
 <div class="header">
-  <h3>Sub Pods</h3>
+  <h3>Collections</h3>
 </div>
 
-<div class="row" *ngFor="let app of apps">
-  <h2>{{ app.name }}</h2>
-  <div class="scope-list">
-    <p *ngFor="let scope of app.scopes">{{ scope }}</p>
+<h2 class="center" *ngIf="pairs.length > 0">Health Data</h2>
+
+<div class="pair-list">
+  <div class="pair-item" *ngFor="let pair of pairs">
+    <p>{{ pair.key }}</p>
+    <p>{{ pair.value }}</p>
   </div>
-  <button mat-raised-button>Accept</button>
 </div>

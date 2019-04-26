@@ -19,6 +19,7 @@ export class RequestComponent implements OnInit {
   ngOnInit() {
   }
 
+  // Check requested permissions then send to auth service to generate request URL.
   authorize() {
     this.authService.getPermission(this.readPermission, this.writePermission, this.deletePermission);
   }

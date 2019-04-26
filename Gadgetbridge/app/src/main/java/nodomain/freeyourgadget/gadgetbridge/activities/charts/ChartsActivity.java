@@ -22,6 +22,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -39,21 +42,43 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
+import nodomain.freeyourgadget.gadgetbridge.GBException;
+import nodomain.freeyourgadget.gadgetbridge.JsonPlaceHolderApi;
+import nodomain.freeyourgadget.gadgetbridge.LockHandler;
+import nodomain.freeyourgadget.gadgetbridge.Post;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.activities.AbstractFragmentPagerAdapter;
 import nodomain.freeyourgadget.gadgetbridge.activities.AbstractGBFragmentActivity;
+import nodomain.freeyourgadget.gadgetbridge.database.DBHandler;
+import nodomain.freeyourgadget.gadgetbridge.database.DBHelper;
 import nodomain.freeyourgadget.gadgetbridge.devices.DeviceCoordinator;
 import nodomain.freeyourgadget.gadgetbridge.impl.GBDevice;
 import nodomain.freeyourgadget.gadgetbridge.model.RecordedDataTypes;
+import nodomain.freeyourgadget.gadgetbridge.NewDBHelper;
 import nodomain.freeyourgadget.gadgetbridge.util.DateTimeUtils;
 import nodomain.freeyourgadget.gadgetbridge.util.DeviceHelper;
 import nodomain.freeyourgadget.gadgetbridge.util.GB;
 import nodomain.freeyourgadget.gadgetbridge.util.LimitedQueue;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Body;
+import retrofit2.http.Headers;
+import retrofit2.http.POST;
 
 public class ChartsActivity extends AbstractGBFragmentActivity implements ChartsHost {
 
@@ -62,6 +87,8 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
     private Date mStartDate;
     private Date mEndDate;
     private SwipeRefreshLayout swipeLayout;
+
+    private JsonPlaceHolderApi jsonPlaceHolderApi;
 
     LimitedQueue mActivityAmountCache = new LimitedQueue(60);
 
@@ -124,6 +151,8 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_charts);
+
+
 
         initDates();
 
@@ -189,6 +218,13 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
                 handleNextButtonClicked();
             }
         });
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://192.168.43.149:3002/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        jsonPlaceHolderApi = retrofit.create(JsonPlaceHolderApi.class);
     }
 
     private String formatDetailedDuration() {
@@ -261,6 +297,8 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
             case R.id.charts_fetch_activity_data:
                 fetchActivityData();
                 return true;
+            case R.id.charts_sync_activity_data:
+                syncActivityData();
             default:
                 break;
         }
@@ -280,6 +318,103 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
             swipeLayout.setRefreshing(false);
             GB.toast(this, getString(R.string.device_not_connected), Toast.LENGTH_SHORT, GB.ERROR);
         }
+    }
+
+    private void syncActivityData () {
+        createPost();
+        if (getDevice().isInitialized()) {
+            createPost();
+
+        } else {
+            swipeLayout.setRefreshing(false);
+//            GB.toast(this, getString(R.string.device_not_connected), Toast.LENGTH_SHORT, GB.ERROR);
+        }
+    }
+
+    private void createPost() {
+        // Create array list of each day of the week should be 7-8 days long
+        ArrayList<Integer> stepList = new ArrayList<>();
+        ArrayList<String> weekList = new ArrayList<>();
+        try {
+            // Get reference to database
+            DBHandler dbHandler = GBApplication.acquireDB();
+            GBApplication.releaseDB();
+            SQLiteOpenHelper dbHelper = dbHandler.getHelper();
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            // Select all
+            swipeLayout.setRefreshing(true);
+            // Get last week of values
+            String query = "SELECT * FROM 'MI_BAND_ACTIVITY_SAMPLE' ORDER BY TIMESTAMP DESC LIMIT 10080";
+
+            // Go through every value and if the date is the same as the current front of the list then accumulate
+            Cursor data = db.rawQuery(query, null);
+            SimpleDateFormat sdf = new SimpleDateFormat("dd_MM_yyyy");
+            while(data.moveToNext()){
+                //get the steps from column 4
+                int steps = data.getInt(4);
+                // get time from column 1
+                long epoch = data.getLong(0);
+                // Convert epoch to date
+                String date = sdf.format(new Date(epoch*1000));
+                // If empty initialise
+                if (weekList.isEmpty()) {
+                    weekList.add(date);
+                    stepList.add(steps);
+                } else {
+                    // If date the same then accumulate steps
+                    if (weekList.get(weekList.size() - 1).equals(date)) {
+                        // Get current steps
+                        int curStep = stepList.get(stepList.size() - 1);
+                        // Add new steps
+                        stepList.set(stepList.size() - 1, curStep + steps);
+                    } else { // if date different then start new day
+                        weekList.add(date);
+                        stepList.add(steps);
+                    }
+                }
+            }
+            System.out.println(stepList);
+            System.out.println(weekList);
+            swipeLayout.setRefreshing(false);
+
+        } catch (GBException e) {
+            e.printStackTrace();
+        }
+
+        LinkedHashMap<String, Integer> post = new LinkedHashMap<>();
+
+        for (int i = 0; i < 7; i++) {
+            post.put(weekList.get(i) + "_steps", stepList.get(i));
+        }
+
+        Call<Post> call = jsonPlaceHolderApi.createPost(post);
+
+        call.enqueue(new Callback<Post>() {
+            @Override
+            public void onResponse(Call<Post> call, Response<Post> response) {
+
+                if (!response.isSuccessful()) {
+                    System.out.println(response);
+                    System.out.println("Failure");
+                    Toast.makeText(ChartsActivity.this, "Error", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                String content = "Code: " + response.code();
+
+                System.out.println(content);
+
+                Toast.makeText(ChartsActivity.this, "Data Synced to Pod", Toast.LENGTH_LONG).show();
+
+            }
+
+
+            @Override
+            public void onFailure(Call<Post> call, Throwable t) {
+                System.out.println("Failure");
+                Toast.makeText(ChartsActivity.this, "Error", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     @Override

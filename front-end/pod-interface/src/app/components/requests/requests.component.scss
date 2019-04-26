@@ -33,3 +33,22 @@
     color: white;
     margin-left: 1em;
 }
+
+.pair-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0 3em;
+}
+
+.pair-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.pair-item p {
+    margin-top: 0;
+}
+
+.center {
+    text-align: center;
+}

@@ -9,17 +9,6 @@ import { AuthorizeService } from '../../services/authorize.service';
 })
 export class AuthorizedAppsComponent implements OnInit {
 
-  apps = [
-    {
-      name: 'Facebook',
-      scopes: ['Social', 'Health', 'Contacts', 'Facebook']
-    },
-    {
-      name: 'Snapchat',
-      scopes: ['Snapchat', 'Location']
-    }
-  ];
-
   testApp: any;
 
   constructor(
@@ -32,21 +21,26 @@ export class AuthorizedAppsComponent implements OnInit {
   }
 
   getApps() {
+    // Returns all the currently authorised applications
     this.podService.getAuthorizedApps().subscribe( res => {
-      console.log(res);
       this.testApp = res;
-      console.log(this.testApp);
-      // Format scopes
+      // Format scopes - split the string of scopes so can be displayed on front-end.
       this.testApp.forEach(app => {
         app.scope = app.scope.split(' ');
       });
-      console.log(this.testApp);
     });
   }
 
   removeApp(client: string) {
+    // Remove a client from the list of authorised applications then update the list of apps again.
     this.authService.removeApp(client).subscribe(res => {
-      console.log(res);
+      this.getApps();
+    });
+  }
+
+  // Add fitness app to authorised apps then refresh list.
+  addFitnessApp() {
+    this.authService.addFitnessApp().subscribe(res => {
       this.getApps();
     });
   }

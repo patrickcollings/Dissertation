@@ -4,7 +4,6 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     mongoose = require('mongoose'),
     cors = require('cors'),
-    request = require('request'),
     rp = require('request-promise');
 
 const model = require('./model');

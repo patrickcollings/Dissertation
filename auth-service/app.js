@@ -3,9 +3,7 @@
 const express = require('express'),
 	bodyParser = require('body-parser'),
 	mongoose = require('mongoose'),
-	OAuth2Server = require('oauth2-server'),
 	cors = require('cors'),
-	Q = require('q');
 
 const jwt = require('jsonwebtoken');
 const utils = require('./utils/');
@@ -118,8 +116,6 @@ app.post('/token', async (req, res) => {
 	const client_secret = req.body.client_secret;
 	const user_id = req.body.user_id;
 	const scope = req.body.scope;
-
-	
 
 	try {
 

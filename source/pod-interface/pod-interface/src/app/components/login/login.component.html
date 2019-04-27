@@ -1,0 +1,13 @@
+<div class="container mat-elevation-z8">
+  <h1>Login to your pod</h1>
+  <form class="form" (submit)="submit()">
+    <mat-form-field class="example-full-width">
+      <input [(ngModel)]="username" name="username" matInput placeholder="Username">
+    </mat-form-field>
+    <mat-form-field class="example-full-width">
+      <input [(ngModel)]="password" name="password" matInput type="password" placeholder="Password">
+    </mat-form-field>
+    <p class="error" *ngIf="error">{{ errorMessage }}</p>
+    <button mat-raised-button color="primary">Login</button>
+  </form>
+</div>

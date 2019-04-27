@@ -1,0 +1,33 @@
+<div class="container">
+
+    <h2>Request Review</h2>
+
+    <p>Below is a request for access to your data, read the request carefully to ensure that you fully agree to what is required.
+        Remember to never accept a request from a client you don't know.
+    </p>
+
+    <div class="request-detail">
+        <p>Client Id</p>
+        <p>{{ clientId }}</p>
+    </div>
+
+    <div class="request-detail">
+        <p>Redirect URL</p>
+        <p>{{ redirect }}</p>
+    </div>
+
+    <div class="request-detail">
+        <p>Request Type</p>
+        <p>{{ responseType }}</p>
+    </div>
+
+    <div class="request-detail">
+        <p>Scope</p>
+        <p>{{ scope }}</p>
+    </div>
+
+    <div class="buttons">
+        <button mat-raised-button color="primary" (click)="accept()">Accept</button>
+        <button mat-raised-button (click)="reject()">Reject</button>
+    </div>
+</div>
